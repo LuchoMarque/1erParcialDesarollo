@@ -13,7 +13,7 @@ Para ejecutar la aplicación tienes 2 opciones:
 
 ### POST `/mutant`
 
-Envía una secuencia de ADN en formato JSON para verificar si corresponde a un mutante. <\br>
+Envía una secuencia de ADN en formato JSON para verificar si corresponde a un mutante. <br>
 {
   "dna": ["ATGCGA", "CAGTGC", "TTATGT", "AGAAGG", "CCCCTA", "TCACTG"]
 }
