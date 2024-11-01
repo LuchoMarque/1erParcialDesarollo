@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ParcialMagnetoApplication {
+public class DetectorMutanteApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ParcialMagnetoApplication.class, args);
+        SpringApplication.run(DetectorMutanteApplication.class, args);
 
         System.out.println("Aplicación en Funcionamiento");
     }
