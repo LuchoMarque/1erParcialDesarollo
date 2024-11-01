@@ -14,15 +14,23 @@ Para ejecutar la aplicación tienes 2 opciones:
 ### POST `/mutant`
 
 Envía una secuencia de ADN en formato JSON para verificar si corresponde a un mutante. <br>
+Esta secuencia es de un mutante <br>
 {
   "dna": ["ATGCGA", "CAGTGC", "TTATGT", "AGAAGG", "CCCCTA", "TCACTG"]
-}
-
-
+} <br>
+Esta secuencia es de un humano <br>
+{
+  "dna": ["ATGCGA", "CAGTGC", "TTATTT", "AGACGG", "GCGTCA", "TCACTG"]
+}<br>
+Esta secuencia es debería devolver un error <br>
+{
+  "dna": ["ATGCGA", "CAGTGC", "TTATGT", "AGAAGG", "CCCCTA", "TCACTGG"]
+} <br>
 
 ### GET `/stats`
 
-Obtiene todas cuantos adn humanos y mutantes hay en la base de datos y saca el promedio de mutantes.
+Obtiene todas cuantos adn humanos y mutantes hay en la base de datos y saca el promedio de mutantes.<br>
+Recomiendo ejecutarlo en el localhost ,luego de haber cargado varios ADN.
 
 
 
