@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
-import java.util.stream.IntStream;
+import java.util.Arrays;
 
 @Service
 public class DnaService {
@@ -15,109 +15,86 @@ public class DnaService {
     private DnaRepository dnaRepository;
 
     public boolean isMutant(String[] dna) {
-        // Validar que el ADN solo contenga A, T, G, C
-        if (!isValidDna(dna)) {
-            throw new IllegalArgumentException("DNA must only contain the characters A, T, G, C.");
+        // Convertimos el array de ADN a una matriz para su análisis
+        char[][] dnaMatrix = convertToMatrix(dna);
+        boolean isMutant = checkAllSequences(dnaMatrix, 0, 0, 0);
+
+        // Guardamos el resultado en la base de datos si es nuevo
+        String dnaSequence = String.join(",", dna);
+        Optional<Dna> existingDna = dnaRepository.findByDna(dnaSequence);
+        if (!existingDna.isPresent()) {
+            Dna dnaEntity = Dna.builder()
+                    .dna(dnaSequence)
+                    .isMutant(isMutant)
+                    .build();
+            dnaRepository.save(dnaEntity);
         }
 
-        int sequenceCount = 0; // Contador de secuencias encontradas
-        int size = dna.length;
-
-        // Verificar horizontal, vertical y diagonal usando métodos separados
-        sequenceCount += checkAllHorizontal(dna,size);
-        sequenceCount += checkAllVertical(dna,size);
-        sequenceCount += checkAllDiagonals(dna,size);
-
-        // Es mutante si encuentra más de una secuencia
-        return sequenceCount > 1;
+        return isMutant;
     }
 
-    //Método para validar que el ADN solo contenga A, T, G, C
-    private boolean isValidDna(String[] dna) {
-        return IntStream.range(0, dna.length)
-                .allMatch(i -> dna[i].matches("[ATGC]+")); // Verificar que cada fila contenga solo A, T, G, C
+    private char[][] convertToMatrix(String[] dna) {
+        char[][] dnaMatrix = new char[dna.length][dna[0].length()];
+        for (int i = 0; i < dna.length; i++) {
+            dnaMatrix[i] = dna[i].toCharArray();
+        }
+        return dnaMatrix;
     }
 
+    private boolean checkAllSequences(char[][] dna, int row, int col, int sequencesFound) {
+        if (sequencesFound > 1) return true;
+        if (row >= dna.length) return false;
 
-    private int checkAllHorizontal(String[] dna,int size) {
-        return IntStream.range(0, size)
-                .map(i -> checkSequence(dna[i]))
-                .sum();
-    }
-
-    private int checkAllVertical(String[] dna,int size) {
-        return IntStream.range(0, size)
-                .map(j -> {
-                    StringBuilder column = new StringBuilder();
-                    IntStream.range(0, dna.length)
-                            .forEach(i -> column.append(dna[i].charAt(j)));
-                    return checkSequence(column.toString());
-                })
-                .sum();
-    }
-
-    private int checkAllDiagonals(String[] dna,int size) {
-
-        // Diagonales de izquierda a derecha
-        int leftToRightDiagonals = IntStream.range(0, size)
-                .map(i -> {
-                    StringBuilder diagonal = new StringBuilder();
-                    IntStream.range(0, i + 1)
-                            .filter(j -> i - j < size)
-                            .forEach(j -> diagonal.append(dna[i - j].charAt(j)));
-                    return checkSequence(diagonal.toString());
-                })
-                .sum();
-
-        // Diagonales de derecha a izquierda
-        int rightToLeftDiagonals = IntStream.range(0, size)
-                .map(i -> {
-                    StringBuilder diagonal = new StringBuilder();
-                    IntStream.range(0, i + 1)
-                            .filter(j -> i - j < size)
-                            .forEach(j -> diagonal.append(dna[i - j].charAt(size - 1 - j)));
-                    return checkSequence(diagonal.toString());
-                })
-                .sum();
-
-        return leftToRightDiagonals + rightToLeftDiagonals;
-    }
-
-    private int checkSequence(String sequence) {
-        int count = 0;
-        char currentChar = sequence.charAt(0);
-        int currentStreak = 1;
-
-        // Contar secuencias de 4 caracteres iguales
-        for (int i = 1; i < sequence.length(); i++) {
-            if (sequence.charAt(i) == currentChar) {
-                currentStreak++;
-                if (currentStreak == 4) {
-                    count++;
-                    currentStreak = 0; // Reiniciar para contar otras secuencias
-                }
-            } else {
-                currentChar = sequence.charAt(i);
-                currentStreak = 1;
-            }
+        if (hasHorizontalSequence(dna, row, col, 4) ||
+                hasVerticalSequence(dna, row, col, 4) ||
+                hasDiagonalSequence(dna, row, col, 4) ||
+                hasReverseDiagonalSequence(dna, row, col, 4)) {
+            sequencesFound++;
         }
 
-        return count;
+        if (col + 1 >= dna[0].length) {
+            return checkAllSequences(dna, row + 1, 0, sequencesFound);
+        }
+
+        return checkAllSequences(dna, row, col + 1, sequencesFound);
+    }
+
+    private boolean hasHorizontalSequence(char[][] dna, int row, int col, int length) {
+        if (col + 3 >= dna[0].length) return false;
+        return (dna[row][col] == dna[row][col + 1] &&
+                dna[row][col + 1] == dna[row][col + 2] &&
+                dna[row][col + 2] == dna[row][col + 3]);
+    }
+
+    private boolean hasVerticalSequence(char[][] dna, int row, int col, int length) {
+        if (row + 3 >= dna.length) return false;
+        return (dna[row][col] == dna[row + 1][col] &&
+                dna[row + 1][col] == dna[row + 2][col] &&
+                dna[row + 2][col] == dna[row + 3][col]);
+    }
+
+    private boolean hasDiagonalSequence(char[][] dna, int row, int col, int length) {
+        if (row + 3 >= dna.length || col + 3 >= dna[0].length) return false;
+        return (dna[row][col] == dna[row + 1][col + 1] &&
+                dna[row + 1][col + 1] == dna[row + 2][col + 2] &&
+                dna[row + 2][col + 2] == dna[row + 3][col + 3]);
+    }
+
+    private boolean hasReverseDiagonalSequence(char[][] dna, int row, int col, int length) {
+        if (row + 3 >= dna.length || col - 3 < 0) return false;
+        return (dna[row][col] == dna[row + 1][col - 1] &&
+                dna[row + 1][col - 1] == dna[row + 2][col - 2] &&
+                dna[row + 2][col - 2] == dna[row + 3][col - 3]);
     }
 
     public boolean saveDna(String[] dna) {
         String dnaSequence = String.join(",", dna);
 
-
-        // Verificar si ya existe un registro con este ADN
         Optional<Dna> existingDna = dnaRepository.findByDna(dnaSequence);
-
-        // Si ya existe, no guardar de nuevo
         if (existingDna.isPresent()) {
-            return existingDna.get().isMutant();  // Retorna el registro existente
+            return existingDna.get().isMutant();
         }
 
-        // Determinamos si el ADN es mutante y lo guardamos en la base de datos
         boolean isMutant = isMutant(dna);
         Dna dnaEntity = Dna.builder()
                 .dna(dnaSequence)
@@ -125,6 +102,6 @@ public class DnaService {
                 .build();
         dnaRepository.save(dnaEntity);
 
-        return isMutant(dna);
+        return isMutant;
     }
 }
